@@ -1,13 +1,18 @@
-#!/usr/bin/env python3
 import base64
 import signal
 import time
+import serial
 
 import cv2
 import numpy as np
 from fastapi import Response
 
 from nicegui import Client, app, core, run, ui
+
+port = "COM4"
+baud = 9600
+
+arduinoData = serial.Serial(port, baud)
 
 # In case you don't have a webcam, this will provide a black placeholder image.
 black_1px = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjYGBg+A8AAQQBAHAgZQsAAAAASUVORK5CYII='
@@ -44,10 +49,12 @@ def setup() -> None:
 
     # For non-flickering image updates and automatic bandwidth adaptation an interactive image is much better than `ui.image()`.
     video_image = ui.interactive_image().classes('w-full h-full')
+    sensor_value = ui.label("")
     # A timer constantly updates the source of the image.
     # Because data from same paths is cached by the browser,
     # we must force an update by adding the current timestamp to the source.
     ui.timer(interval=0.1, callback=lambda: video_image.set_source(f'/video/frame?{time.time()}'))
+    ui.timer(interval=2, callback=lambda: sensor_value.set_text(str(arduinoData.readline())))
 
     async def disconnect() -> None:
         """Disconnect all clients from current running server."""
